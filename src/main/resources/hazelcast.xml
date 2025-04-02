@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hazelcast xmlns="http://www.hazelcast.com/schema/config"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.hazelcast.com/schema/config
+           http://www.hazelcast.com/schema/config/hazelcast-config-6.0.xsd">
+
+
+	<set
+			name="deduplication">
+	</set>
+
+	<cluster-name>saga</cluster-name>
+
+	<jet enabled="true" />
+</hazelcast>

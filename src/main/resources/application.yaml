@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: saga-poc-try-one
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/saga
+  datasource:
+    url: jdbc:mysql://localhost:3306/cdc
+    username: root
