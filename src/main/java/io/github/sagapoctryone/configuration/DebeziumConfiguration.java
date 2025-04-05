@@ -2,40 +2,36 @@ package io.github.sagapoctryone.configuration;
 
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.jet.Jet;
-import com.hazelcast.jet.JetInstance;
 import com.hazelcast.jet.JetService;
 import com.hazelcast.jet.cdc.ChangeRecord;
 import com.hazelcast.jet.cdc.DebeziumCdcSources;
-import com.hazelcast.jet.cdc.mysql.MySqlCdcSources;
 import com.hazelcast.jet.config.JobConfig;
 import com.hazelcast.jet.config.ProcessingGuarantee;
 import com.hazelcast.jet.pipeline.Pipeline;
 import com.hazelcast.jet.pipeline.Sinks;
 import com.hazelcast.jet.pipeline.StreamSource;
-import jakarta.annotation.PostConstruct;
+import io.debezium.connector.mongodb.MongoDbConnector;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import static lombok.AccessLevel.PRIVATE;
 
-@org.springframework.context.annotation.Configuration
+@Configuration
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class DebeziumConfiguration {
 
-    @PostConstruct
+    @Bean
     Pipeline pipeline() {
-        StreamSource<ChangeRecord> source = MySqlCdcSources.mysql("source")
-                .setCustomProperty("database.server.name", "source")
-                .setCustomProperty("database.allowPublicKeyRetrieval", "true")
-                .setDatabaseAddress("127.0.0.1")
-                .setDatabasePort(3306)
-                .setDatabaseUser("root")
-                .setDatabasePassword("")
-                //.setClusterName("dbserver1")
+        StreamSource<ChangeRecord> source =
+                DebeziumCdcSources.debezium("source", MongoDbConnector.class)
+                .setProperty("mongodb.name", "source")
+                .setProperty("mongodb.hosts", "localhost:27017")
+                .setProperty("mongodb.user", "")
+                .setProperty("mongodb.password", "")
+                .setProperty("mongodb.authsource", "local")
                 .build();
 
         Pipeline pipeline = Pipeline.create();
