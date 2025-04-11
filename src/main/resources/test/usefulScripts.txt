@@ -1,0 +1,21 @@
+docker run -p 9092:9092 wlsc/kafka:2.8.0 --env KAFKA_ADVERTISED_LISTENERS=localhost:9092
+
+./bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic movement_saga-poc-try-one_B
+./bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic movement_compensation_B_saga-poc-try-one 
+
+
+
+db.createUser({user:"debezium",pwd:"debeziumpassword",roles:[{role:"readWrite",db:"saga"}]})
+
+
+{  "choreographyId" : "c3171a6a-fce9-4db7-b79a-22eadaf78609",  "finishedSteps": [],  "body": "wabalabadubud" }	
+
+
+
+./kafka-console-producer.sh --bootstrap-server localhost:9092 --topic movement_saga-poc-try-one_B
+
+./kafka-console-producer.sh --bootstrap-server localhost:9092 --topic movement_compensation_B_saga-poc-try-one 
+
+
+
+$ docker run --name mysql -p 3306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=true -d mysql:8.0
