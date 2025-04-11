@@ -1,6 +1,7 @@
 package io.github.sagapoctryone.service;
 
 
+import com.hazelcast.core.HazelcastInstance;
 import io.github.sagapoctryone.model.Auxilary;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -24,6 +25,7 @@ import static lombok.AccessLevel.PRIVATE;
 public class FooAspect {
 
     AuxRepository auxRepository;
+    HazelcastInstance hazelcastInstance;
 
     @Before("@annotation(transactional)")
     //@Transactional
@@ -54,7 +56,6 @@ public class FooAspect {
                     // odje zove producera za rollback
 
                 }
-
                 TransactionSynchronization.super.afterCompletion(status);
             }
         });
