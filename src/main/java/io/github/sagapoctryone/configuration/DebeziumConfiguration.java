@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.JsonByteArray;
+import io.github.sagapoctryone.service.DebeziumEventHandler;
 import io.github.sagapoctryone.util.DebeziumUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -16,7 +17,6 @@ import org.springframework.integration.dsl.IntegrationFlow;
 
 import java.util.*;
 
-import static java.util.function.Predicate.not;
 import static lombok.AccessLevel.PRIVATE;
 
 @Configuration

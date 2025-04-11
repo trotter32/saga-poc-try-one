@@ -11,15 +11,24 @@ public class MovementBuilder {
     private static final String MOVEMENT_PREFIX = "movement_";
     private static final String COMPENSATION_PREFIX = "movement_compensation_";
 
+
     @Value("${spring.application.name}")
     private String applicationName;
 
 
-    public String getMovement(String nextStep) {
-        return MOVEMENT_PREFIX + applicationName + "_" + nextStep;
+    public String getNextMovement(String step, String movementType) {
+        if (movementType.equals("compensation")) {
+            return getCompensation(step);
+        } else {
+            return getMovement(step);
+        }
     }
 
-    public String getCompensation(String nextStep) {
-        return COMPENSATION_PREFIX + nextStep + "_" + applicationName;
+    private String getMovement(String step) {
+        return MOVEMENT_PREFIX + applicationName + "_" + step;
+    }
+
+    private String getCompensation(String step) {
+        return COMPENSATION_PREFIX + step + "_" + applicationName;
     }
 }

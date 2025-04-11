@@ -1,8 +1,8 @@
-package io.github.sagapoctryone.service;
+package io.github.sagapoctryone.testing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.hazelcast.core.HazelcastInstance;
-import io.github.sagapoctryone.configuration.MovementConsumer;
+import io.github.sagapoctryone.configuration.MovementConsumerConfiguration;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,7 @@ public class FooBar {
 
     FooRepository fooRepository;
     HazelcastInstance hazelcastInstance;
-    List<MovementConsumer> movementConsumers;
+    List<MovementConsumerConfiguration> movementConsumerConfigurations;
 
     @GetMapping("/foo")
     @Transactional

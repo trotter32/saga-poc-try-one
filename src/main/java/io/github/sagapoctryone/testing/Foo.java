@@ -1,4 +1,4 @@
-package io.github.sagapoctryone.service;
+package io.github.sagapoctryone.testing;
 
 
 import lombok.Data;

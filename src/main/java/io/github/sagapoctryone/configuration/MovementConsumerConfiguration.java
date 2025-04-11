@@ -1,60 +1,41 @@
 package io.github.sagapoctryone.configuration;
 
 
-import io.github.sagapoctryone.model.Choreography;
+import io.github.sagapoctryone.model.Movement;
+import io.github.sagapoctryone.service.movement.MovementReceiver;
 import io.github.sagapoctryone.model.MovementBuilder;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
-import org.springframework.kafka.listener.MessageListener;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static lombok.AccessLevel.PRIVATE;
 
 @Configuration
-@FieldDefaults(level = PRIVATE)
-public abstract class MovementConsumer {
+@RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+public class MovementConsumerConfiguration {
 
-    @Autowired
     MovementBuilder movementBuilder;
-    @Autowired
     ConfigurableListableBeanFactory beanFactory;
+    List<MovementReceiver> compensationMovementReceivers;
 
-
-    public abstract void execute();
-
-    public abstract String getSource();
 
     @PostConstruct
     public void run() {
-        var containerProps = new ContainerProperties(movementBuilder.getMovement(
-                getSource()));
-
-
-        containerProps.setMessageListener((MessageListener<String, Choreography>) record -> {
-            Choreography choreography = record.value();
-
-            MDC.put("transactionId", choreography.getChoreographyId());
-
-            System.out.println("Received message: " + record.value());
-
-            execute();
-        });
-
-
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "group");
@@ -65,12 +46,18 @@ public abstract class MovementConsumer {
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "io.github.sagapoctryone.model.Choreography");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        compensationMovementReceivers.forEach(
+                compensationMovementReceiver -> compensationMovementReceiver.getSteps().stream()
+                        .map(step -> movementBuilder.getNextMovement(step, compensationMovementReceiver.getType()))
+                        .forEach(movement -> {
+                            var containerProps = new ContainerProperties(movement);
+                            containerProps.setMessageListener(compensationMovementReceiver);
 
-        DefaultKafkaConsumerFactory<String, Choreography> cf = new DefaultKafkaConsumerFactory<>(props);
-        KafkaMessageListenerContainer<String, Choreography> container =
-                new KafkaMessageListenerContainer<>(cf, containerProps);
+                            DefaultKafkaConsumerFactory<String, Movement> consumerFactory = new DefaultKafkaConsumerFactory<>(props);
+                            KafkaMessageListenerContainer<String, Movement> container =
+                                    new KafkaMessageListenerContainer<>(consumerFactory, containerProps);
 
-
-        beanFactory.registerSingleton(UUID.randomUUID().toString(), container);
+                            beanFactory.registerSingleton(UUID.randomUUID().toString(), container);
+                        }));
     }
 }

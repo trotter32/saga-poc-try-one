@@ -1,4 +1,4 @@
-package io.github.sagapoctryone.configuration;
+package io.github.sagapoctryone.testing;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
