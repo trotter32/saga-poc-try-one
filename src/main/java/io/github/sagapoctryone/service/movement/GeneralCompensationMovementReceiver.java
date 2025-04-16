@@ -2,6 +2,7 @@ package io.github.sagapoctryone.service.movement;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hazelcast.map.IMap;
@@ -33,7 +34,7 @@ public class GeneralCompensationMovementReceiver extends CompensationMovementRec
     ObjectMapper objectMapper;
     ApplicationContext applicationContext;
     MultiMap<String, String> debeziumEventMap;
-    IMap<String, String> choreographyIdTransactionIdMap;
+    IMap<String, String> auxiliaryEventMap;
 
     @Override
     @Transactional
@@ -49,24 +50,14 @@ public class GeneralCompensationMovementReceiver extends CompensationMovementRec
     private void onMessageInternal(String choreographyId) throws JsonProcessingException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         var auxiliary = auxiliaryRepository.findByChoreographyId(choreographyId);
         var repoCallArguments = repoCallArgRepository.findByAuxiliaryIdOrderByIdAsc(auxiliary.getId());
-        var debeziumEvents = debeziumEventMap.get(choreographyIdTransactionIdMap.get(auxiliary.getChoreographyId()))
+        var debeziumEvents = debeziumEventMap.get(auxiliaryEventMap.get(auxiliary.getChoreographyId()))
                 .stream().map(String::valueOf).toList();
 
         for (int i = 0; i < debeziumEvents.size(); i++) {
             var argument = repoCallArguments.get(i);
             var debeziumEvent = objectMapper.readTree(debeziumEvents.get(i));
-            String rollbackObjectString;
-            String methodName;
 
-            if (debeziumEvent.path("op").asText().equals("c")) {
-                rollbackObjectString = debeziumEvent.get("after").asText();
-                methodName = "delete";
-            } else {
-                rollbackObjectString = debeziumEvent.get("before").asText();
-                methodName = "save";
-            }
-
-            var rollbackObjectJson = (ObjectNode) objectMapper.readTree(rollbackObjectString);
+            var rollbackObjectJson = (ObjectNode) debeziumEvent.path("payload");
             if (rollbackObjectJson.get("_id") != null) {
                 rollbackObjectJson.set("id", rollbackObjectJson.get("_id").get("$oid"));
             }
@@ -76,12 +67,20 @@ public class GeneralCompensationMovementReceiver extends CompensationMovementRec
             var repository = (CrudRepository<?, ?>) applicationContext.getBean(
                     Class.forName(argument.getRepositoryClass()));
 
-            var method = repository.getClass().getMethod(methodName, Object.class);
+            var method = repository.getClass().getMethod(methodNameResolver(debeziumEvent), Object.class);
             method.invoke(repository, rollbackObject);
         }
 
         //todo handle errors
         //
+    }
+
+    private String methodNameResolver(JsonNode debeziumEvent) {
+        return switch (debeziumEvent.path("op").asText()) {
+            case "c" -> "delete";
+            case "d" -> "save";
+            default -> throw new IllegalStateException("Unexpected value: " + debeziumEvent.path("op").asText());
+        };
     }
 
     //todo  Ovde treba da cupam iz liste svih povezanih servisa

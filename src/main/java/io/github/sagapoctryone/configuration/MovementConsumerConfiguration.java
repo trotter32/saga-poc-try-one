@@ -43,9 +43,10 @@ public class MovementConsumerConfiguration {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
         props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "io.github.sagapoctryone.model.Choreography");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "io.github.sagapoctryone.model.Movement");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+/*
         compensationMovementReceivers.forEach(
                 compensationMovementReceiver -> compensationMovementReceiver.getSteps().stream()
                         .map(step -> movementBuilder.getNextMovement(step, compensationMovementReceiver.getType()))
@@ -59,5 +60,6 @@ public class MovementConsumerConfiguration {
 
                             beanFactory.registerSingleton(UUID.randomUUID().toString(), container);
                         }));
+*/
     }
 }

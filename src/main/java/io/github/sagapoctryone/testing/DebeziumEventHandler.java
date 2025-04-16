@@ -1,4 +1,4 @@
-package io.github.sagapoctryone.service;
+package io.github.sagapoctryone.testing;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,7 +22,7 @@ import static lombok.AccessLevel.PRIVATE;
 public class DebeziumEventHandler implements MessageHandler {
 
     MultiMap<String, String> debeziumEventMap;
-    IMap<String, String> choreographyIdTransactionIdMap;
+    IMap<String, String> auxiliaryEventMap;
     ObjectMapper objectMapper;
 
     @Override
@@ -42,7 +42,7 @@ public class DebeziumEventHandler implements MessageHandler {
                 try {
                     var choreographyId = objectMapper.readTree(payloadNode.path("after").asText())
                             .path("choreographyId");
-                    choreographyIdTransactionIdMap.put(choreographyId.asText(), transactionId);
+                    auxiliaryEventMap.put(choreographyId.asText(), transactionId);
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }

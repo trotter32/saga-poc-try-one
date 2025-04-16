@@ -38,16 +38,18 @@ public class TransactionalAspect {
                 return joinPoint.proceed();
             }
 
+            var choreographyId = UUID.randomUUID().toString();
             if (MDC.get("choreographyId") == null) {
-                MDC.put("choreographyId", UUID.randomUUID().toString());
+                MDC.put("choreographyId", choreographyId);
             }
             var auxiliary = new Auxiliary();
-            auxiliary.setChoreographyId(MDC.get("choreographyId"));
+            auxiliary.setChoreographyId(choreographyId);
             var savedAuxiliary = auxiliaryRepository.save(auxiliary);
             MDC.put("auxiliaryId", savedAuxiliary.getId());
 
             result = joinPoint.proceed();
 
+            //todo upitan check
             var interfaces = joinPoint.getTarget().getClass().getInterfaces();
             if (interfaces.length > 0 && interfaces[1].equals(MovementReceiver.class)) {
                 return result;
