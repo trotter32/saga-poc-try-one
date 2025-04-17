@@ -1,22 +1,18 @@
-package io.github.sagapoctryone.service.cdc;
+package io.github.sagapoctryone.service.movement;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hazelcast.function.FunctionEx;
 import com.hazelcast.jet.Util;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 @Component
-public class AuxiliaryEventMapper implements FunctionEx<ObjectNode, Map.Entry<String, String>>, ApplicationContextAware {
+public class AuxiliaryMovementMapper implements FunctionEx<ObjectNode, Map.Entry<String, String>> {
 
-    private transient ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
 
     @Override
@@ -30,11 +26,5 @@ public class AuxiliaryEventMapper implements FunctionEx<ObjectNode, Map.Entry<St
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        objectMapper = applicationContext.getBean(ObjectMapper.class);
     }
 }

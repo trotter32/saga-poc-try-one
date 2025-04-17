@@ -1,9 +1,8 @@
 package io.github.sagapoctryone.configuration;
 
 
-import io.github.sagapoctryone.model.Movement;
-import io.github.sagapoctryone.service.movement.MovementReceiver;
-import io.github.sagapoctryone.model.MovementBuilder;
+import io.github.sagapoctryone.service.choreography.BaseChoreographyReceiver;
+import io.github.sagapoctryone.model.ChoreographyBuilder;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -11,27 +10,23 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.listener.ContainerProperties;
-import org.springframework.kafka.listener.KafkaMessageListenerContainer;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static lombok.AccessLevel.PRIVATE;
 
 @Configuration
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class MovementConsumerConfiguration {
+public class ChoreographyConsumerConfiguration {
 
-    MovementBuilder movementBuilder;
+    ChoreographyBuilder choreographyBuilder;
     ConfigurableListableBeanFactory beanFactory;
-    List<MovementReceiver> compensationMovementReceivers;
+    List<BaseChoreographyReceiver> compensationBaseChoreographyReceivers;
 
 
     @PostConstruct
@@ -49,7 +44,7 @@ public class MovementConsumerConfiguration {
 /*
         compensationMovementReceivers.forEach(
                 compensationMovementReceiver -> compensationMovementReceiver.getSteps().stream()
-                        .map(step -> movementBuilder.getNextMovement(step, compensationMovementReceiver.getType()))
+                        .map(step -> movementBuilder.getNextChoreography(step, compensationMovementReceiver.getType()))
                         .forEach(movement -> {
                             var containerProps = new ContainerProperties(movement);
                             containerProps.setMessageListener(compensationMovementReceiver);

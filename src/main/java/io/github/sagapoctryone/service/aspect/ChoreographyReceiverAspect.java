@@ -15,10 +15,10 @@ import static lombok.AccessLevel.PRIVATE;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class MovementReceiverAspect {
+public class ChoreographyReceiverAspect {
 
 
-    @Around("execution(* io.github.sagapoctryone.service.movement.MovementReceiver+.onMessage(..))")
+    @Around("execution(* io.github.sagapoctryone.service.choreography.BaseChoreographyReceiver+.onMessage(..))")
     @Order(1)
     public Object AroundRepositoryCall(ProceedingJoinPoint joinPoint) {
         Object result;

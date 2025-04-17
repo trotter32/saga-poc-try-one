@@ -1,9 +1,10 @@
-package io.github.sagapoctryone.service.cdc;
+package io.github.sagapoctryone.service.movement;
 
 import com.hazelcast.jet.core.AbstractProcessor;
 import com.hazelcast.multimap.MultiMap;
 import jakarta.annotation.Nonnull;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.log4j.Log4j2;
 
 import java.util.Map;
 
@@ -11,7 +12,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 
 @FieldDefaults(level = PRIVATE)
-public class DebeziumEventSinkProcessor extends AbstractProcessor {
+@Log4j2
+public class DebeziumMovementSinkProcessor extends AbstractProcessor {
 
     MultiMap<String, String> multiMap;
 
@@ -21,6 +23,7 @@ public class DebeziumEventSinkProcessor extends AbstractProcessor {
         try {
             var entry = (Map.Entry<String, String>) item;
             multiMap.put(entry.getKey(), entry.getValue());
+            log.info("Movement processed: " + entry.getValue());
             return true;
         } catch (RuntimeException e) {
             return false;
@@ -30,6 +33,6 @@ public class DebeziumEventSinkProcessor extends AbstractProcessor {
     @Override
     protected void init(@Nonnull Context context) throws Exception {
         var hazelcastInstance = context.hazelcastInstance();
-        multiMap = hazelcastInstance.getMultiMap("debeziumEventMap");
+        multiMap = hazelcastInstance.getMultiMap("debeziumMovementMap");
     }
 }

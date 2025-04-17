@@ -1,17 +1,20 @@
 package io.github.sagapoctryone.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.function.FunctionEx;
 import com.hazelcast.jet.Job;
-import com.hazelcast.jet.core.ProcessorMetaSupplier;
-import com.hazelcast.jet.pipeline.*;
+import com.hazelcast.jet.pipeline.Pipeline;
+import com.hazelcast.jet.pipeline.Sink;
+import com.hazelcast.jet.pipeline.SourceBuilder;
+import com.hazelcast.jet.pipeline.StreamSource;
 import com.hazelcast.spring.context.SpringManagedContext;
-import io.github.sagapoctryone.service.cdc.*;
+import io.github.sagapoctryone.service.movement.AuxiliaryMovementMapper;
+import io.github.sagapoctryone.service.movement.CdcMovementMapper;
+import io.github.sagapoctryone.service.movement.DebeziumMovementMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,60 +23,53 @@ import org.springframework.context.annotation.Primary;
 import java.util.Map;
 
 import static com.hazelcast.core.Hazelcast.newHazelcastInstance;
-import static io.github.sagapoctryone.service.cdc.CdcFilterProvider.*;
+import static io.github.sagapoctryone.service.movement.MovementFilterProvider.auxiliaryMovemeventFilter;
+import static io.github.sagapoctryone.service.movement.MovementFilterProvider.cdcMovementPreFilter;
 import static lombok.AccessLevel.PRIVATE;
 
 
 @Configuration(proxyBeanMethods = false)
 @RequiredArgsConstructor
-@FieldDefaults(level = PRIVATE)
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+@Log4j2
 public class HazelcastConfiguration {
 
-    final DebeziumEventMapper debeziumEventMapper;
-    final AuxiliaryEventMapper auxiliaryEventMapper;
-    final CdcEventMapper cdcEventMapper;
-
+    DebeziumMovementMapper debeziumMovementMapper;
+    AuxiliaryMovementMapper auxiliaryMovementMapper;
+    CdcMovementMapper cdcMovementMapper;
+    Sink<Map.Entry<String, String>> debeziumMovementDestination;
+    Sink<Map.Entry<String, String>> auxiliaryMovementDestination;
 
     @Bean
     public Job hazelcastJob(HazelcastInstance hazelcastInstance) {
         var pipeline = Pipeline.create();
 
-        var streamSourceStage = pipeline
-                .readFrom(streamSource());
+        var streamSource = pipeline.readFrom(streamSource())
+                .withoutTimestamps()
+                .map(cdcMovementMapper)
+                .filter(cdcMovementPreFilter());
 
+        streamSource
+                .filter(auxiliaryMovemeventFilter().negate())
+                .map(debeziumMovementMapper)
+                .writeTo(debeziumMovementDestination);
 
-/*        var streamStage = pipeline
-                .readFrom(streamSource())
-
-                .withIngestionTimestamps()
-                .map(cdcEventMapper)
-                .filter(cdcEventPreFilter());*/
-
-/*        streamSourceStage
-                .withIngestionTimestamps()
-                .map(cdcEventMapper)
-                .filter(cdcEventPreFilter())
-                .filter(auxiliaryEventFilter())
-                .map(auxiliaryEventMapper)
-                .writeTo(getAuxiliaryEventSink());*/
-
-        streamSourceStage
-                .withIngestionTimestamps()
-                .map(cdcEventMapper)
-                .filter(cdcEventPreFilter())
-                .filter(debeziumEventFilter())
-                .map(debeziumEventMapper)
-                .writeTo(getDebeziumEventSink());
+        streamSource
+                .filter(cdcMovementPreFilter())
+                .filter(auxiliaryMovemeventFilter())
+                .map(auxiliaryMovementMapper)
+                .writeTo(auxiliaryMovementDestination);
 
         return hazelcastInstance.getJet().newJob(pipeline);
     }
 
     private StreamSource<byte[]> streamSource() {
         return SourceBuilder.stream("queueStream", context ->
-                        context.hazelcastInstance().<byte[]>getQueue("cdcEventQueue"))
+                        context.hazelcastInstance().<byte[]>getQueue("cdcMovementQueue"))
                 .<byte[]>fillBufferFn((queue, buffer) -> {
                     byte[] item;
-                    while ((item = queue.poll()) != null) {
+                    if ((item = queue.poll()) != null) {
+                        log.info("hazelcast ingested an item");
                         buffer.add(item);
                     }
                 }).build();
@@ -81,26 +77,10 @@ public class HazelcastConfiguration {
 
     @Bean
     @Primary
-    public HazelcastInstance hazelcastInstance(SpringManagedContext springManagedContext) {
+    public HazelcastInstance hazelcastInstance() {
         Config config = new Config();
-        config.setManagedContext(springManagedContext);
         config.getJetConfig().setEnabled(true);
 
         return newHazelcastInstance(config);
-    }
-
-    @Bean
-    public SpringManagedContext springManagedContext(ApplicationContext applicationContext) {
-        return new SpringManagedContext(applicationContext);
-    }
-
-    private Sink<Map.Entry<String, String>> getDebeziumEventSink() {
-        return Sinks.fromProcessor("debeziumEventSink",
-                ProcessorMetaSupplier.of(DebeziumEventSinkProcessor::new));
-    }
-
-    private Sink<Map.Entry<String, String>> getAuxiliaryEventSink() {
-        return Sinks.fromProcessor("auxiliaryEventEventSink",
-                ProcessorMetaSupplier.of(AuxiliaryEventSinkProcessor::new));
     }
 }

@@ -5,7 +5,7 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 
 @Data
-public class Auxiliary {
+public class AuxiliaryMovement {
     @Id
     String id;
 

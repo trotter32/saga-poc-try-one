@@ -19,10 +19,10 @@ import static lombok.AccessLevel.PRIVATE;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class DebeziumEventHandler implements MessageHandler {
+public class DebeziumMovementHandler implements MessageHandler {
 
-    MultiMap<String, String> debeziumEventMap;
-    IMap<String, String> auxiliaryEventMap;
+    MultiMap<String, String> debeziumMovementMap;
+    IMap<String, String> auxiliaryMovementMap;
     ObjectMapper objectMapper;
 
     @Override
@@ -37,12 +37,12 @@ public class DebeziumEventHandler implements MessageHandler {
         String[] tokens = schemaName.split("\\.");
         var payloadNode = (ObjectNode) node.path("payload");
 
-        if (!tokens[2].equals("repoCallArg")) {
+        if (!tokens[2].equals("auxiliaryMovementSteps")) {
             if (tokens[2].equals("auxiliary")) {
                 try {
                     var choreographyId = objectMapper.readTree(payloadNode.path("after").asText())
                             .path("choreographyId");
-                    auxiliaryEventMap.put(choreographyId.asText(), transactionId);
+                    auxiliaryMovementMap.put(choreographyId.asText(), transactionId);
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
@@ -52,7 +52,7 @@ public class DebeziumEventHandler implements MessageHandler {
                 } else {
                     payloadNode.remove("before");
                 }
-                debeziumEventMap.put(transactionId, payloadNode.toString());
+                debeziumMovementMap.put(transactionId, payloadNode.toString());
             }
 
         }

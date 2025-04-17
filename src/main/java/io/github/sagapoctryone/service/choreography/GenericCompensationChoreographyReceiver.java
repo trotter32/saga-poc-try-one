@@ -1,4 +1,4 @@
-package io.github.sagapoctryone.service.movement;
+package io.github.sagapoctryone.service.choreography;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,9 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hazelcast.map.IMap;
 import com.hazelcast.multimap.MultiMap;
-import io.github.sagapoctryone.model.Movement;
-import io.github.sagapoctryone.repository.AuxiliaryRepository;
-import io.github.sagapoctryone.repository.RepoCallArgRepository;
+import io.github.sagapoctryone.model.Choreography;
+import io.github.sagapoctryone.repository.AuxiliaryMovementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static lombok.AccessLevel.PRIVATE;
@@ -27,18 +27,19 @@ import static lombok.AccessLevel.PRIVATE;
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class GeneralCompensationMovementReceiver extends CompensationMovementReceiver {
+public class GenericCompensationChoreographyReceiver extends CompensationChoreographyReceiver {
 
-    AuxiliaryRepository auxiliaryRepository;
-    RepoCallArgRepository repoCallArgRepository;
+    AuxiliaryMovementRepository auxiliaryMovementRepository;
     ObjectMapper objectMapper;
     ApplicationContext applicationContext;
-    MultiMap<String, String> debeziumEventMap;
-    IMap<String, String> auxiliaryEventMap;
+    MultiMap<String, String> debeziumMovementMap;
+    IMap<String, String> auxiliaryMovementMap;
+    MultiMap<String, Map<String, String>> auxiliaryMovementStepsMap;
+
 
     @Override
     @Transactional
-    public void onMessage(ConsumerRecord<String, Movement> data) {
+    public void onMessage(ConsumerRecord<String, Choreography> data) {
         try {
             onMessageInternal(data.value().getChoreographyId());
         } catch (Exception e) {
@@ -48,26 +49,25 @@ public class GeneralCompensationMovementReceiver extends CompensationMovementRec
 
 
     private void onMessageInternal(String choreographyId) throws JsonProcessingException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        var auxiliary = auxiliaryRepository.findByChoreographyId(choreographyId);
-        var repoCallArguments = repoCallArgRepository.findByAuxiliaryIdOrderByIdAsc(auxiliary.getId());
-        var debeziumEvents = debeziumEventMap.get(auxiliaryEventMap.get(auxiliary.getChoreographyId()))
-                .stream().map(String::valueOf).toList();
+        var auxiliary = auxiliaryMovementRepository.findByChoreographyId(choreographyId);
+        var auxiliaryMovementSteps = (List<Map<String, String>>) auxiliaryMovementStepsMap.get(auxiliary.getId());
+        var debeziumMovements = (List<String>) debeziumMovementMap.get(auxiliaryMovementMap.get(auxiliary.getChoreographyId()));
 
-        for (int i = 0; i < debeziumEvents.size(); i++) {
-            var argument = repoCallArguments.get(i);
-            var debeziumEvent = objectMapper.readTree(debeziumEvents.get(i));
+        for (int i = 0; i < debeziumMovements.size(); i++) {
+            var auxMovementSteps = auxiliaryMovementSteps.get(i);
+            var debeziumMovement = objectMapper.readTree(debeziumMovements.get(i));
 
-            var rollbackObjectJson = (ObjectNode) debeziumEvent.path("payload");
+            var rollbackObjectJson = (ObjectNode) debeziumMovement.path("payload");
             if (rollbackObjectJson.get("_id") != null) {
                 rollbackObjectJson.set("id", rollbackObjectJson.get("_id").get("$oid"));
             }
 
             var rollbackObject = objectMapper.treeToValue(rollbackObjectJson,
-                    Class.forName(argument.getArgumentClass()));
+                    Class.forName(auxMovementSteps.get("argumentClass")));
             var repository = (CrudRepository<?, ?>) applicationContext.getBean(
-                    Class.forName(argument.getRepositoryClass()));
+                    Class.forName(auxMovementSteps.get("repositoryClas")));
 
-            var method = repository.getClass().getMethod(methodNameResolver(debeziumEvent), Object.class);
+            var method = repository.getClass().getMethod(methodNameResolver(debeziumMovement), Object.class);
             method.invoke(repository, rollbackObject);
         }
 
@@ -75,11 +75,11 @@ public class GeneralCompensationMovementReceiver extends CompensationMovementRec
         //
     }
 
-    private String methodNameResolver(JsonNode debeziumEvent) {
-        return switch (debeziumEvent.path("op").asText()) {
+    private String methodNameResolver(JsonNode debeziumMovement) {
+        return switch (debeziumMovement.path("op").asText()) {
             case "c" -> "delete";
             case "d" -> "save";
-            default -> throw new IllegalStateException("Unexpected value: " + debeziumEvent.path("op").asText());
+            default -> throw new IllegalStateException("Unexpected value: " + debeziumMovement.path("op").asText());
         };
     }
 

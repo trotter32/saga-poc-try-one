@@ -5,11 +5,11 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class Movement {
+public class Choreography {
 
     String choreographyId;
 
-    List<String> finishedSteps;
+    List<String> previousPartners;
 
     // zis is stupid
     String body;

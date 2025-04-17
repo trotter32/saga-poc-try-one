@@ -12,18 +12,18 @@ import io.debezium.engine.format.JsonByteArray;
 import io.debezium.engine.format.KeyValueHeaderChangeEventFormat;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Properties;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static lombok.AccessLevel.PRIVATE;
 
 @Configuration
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
+@Log4j2
 public class DebeziumConfiguration {
 
 
@@ -48,26 +48,12 @@ public class DebeziumConfiguration {
                         .using(properties)
                         //todo handle warning
                         .notifying(event -> System.out.println("~~~ " + event))
-                        .notifying(event -> queue.offer(event.value()))
+                        .notifying(event -> {
+                            log.info("put into queueueue happeend");
+                            //queue.offer(event.value());
+                        })
                         .build();
 
         return debeziumEngine;
-    }
-
-    @Bean
-    public MultiMap<String, String> debeziumEventMap(HazelcastInstance hazelcastInstance) {
-        MultiMapConfig mapConfig = new MultiMapConfig("debeziumEventMap");
-        mapConfig.setValueCollectionType(MultiMapConfig.ValueCollectionType.LIST);
-        return hazelcastInstance.getMultiMap("debeziumEventMap");
-    }
-
-    @Bean
-    public IMap<String, String> auxiliaryEventMap(HazelcastInstance hazelcastInstance) {
-        return hazelcastInstance.getMap("auxiliaryEventMap");
-    }
-
-    @Bean
-    public IQueue<byte[]> cdcEventQueue(HazelcastInstance hazelcastInstance) {
-        return hazelcastInstance.getQueue("cdcEventQueue");
     }
 }

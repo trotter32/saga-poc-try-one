@@ -1,9 +1,9 @@
 package io.github.sagapoctryone.service.aspect;
 
 
-import io.github.sagapoctryone.model.Auxiliary;
-import io.github.sagapoctryone.repository.AuxiliaryRepository;
-import io.github.sagapoctryone.service.movement.MovementReceiver;
+import io.github.sagapoctryone.model.AuxiliaryMovement;
+import io.github.sagapoctryone.repository.AuxiliaryMovementRepository;
+import io.github.sagapoctryone.service.choreography.BaseChoreographyReceiver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -26,7 +26,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class TransactionalAspect {
 
-    AuxiliaryRepository auxiliaryRepository;
+    AuxiliaryMovementRepository auxiliaryMovementRepository;
 
     @Around("@annotation(transactional)")
     @Order(2)
@@ -42,16 +42,16 @@ public class TransactionalAspect {
             if (MDC.get("choreographyId") == null) {
                 MDC.put("choreographyId", choreographyId);
             }
-            var auxiliary = new Auxiliary();
-            auxiliary.setChoreographyId(choreographyId);
-            var savedAuxiliary = auxiliaryRepository.save(auxiliary);
+            var auxiliaryMovement = new AuxiliaryMovement();
+            auxiliaryMovement.setChoreographyId(choreographyId);
+            var savedAuxiliary = auxiliaryMovementRepository.save(auxiliaryMovement);
             MDC.put("auxiliaryId", savedAuxiliary.getId());
 
             result = joinPoint.proceed();
 
             //todo upitan check
             var interfaces = joinPoint.getTarget().getClass().getInterfaces();
-            if (interfaces.length > 0 && interfaces[1].equals(MovementReceiver.class)) {
+            if (interfaces.length > 0 && interfaces[1].equals(BaseChoreographyReceiver.class)) {
                 return result;
             }
         } finally {

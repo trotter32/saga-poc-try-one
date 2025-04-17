@@ -1,8 +1,8 @@
 package io.github.sagapoctryone.testing;
 
 
-import io.github.sagapoctryone.model.Movement;
-import io.github.sagapoctryone.service.movement.GenericMovementReceiver;
+import io.github.sagapoctryone.model.Choreography;
+import io.github.sagapoctryone.service.choreography.ChoreographyReceiver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -16,13 +16,13 @@ import static lombok.AccessLevel.PRIVATE;
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class FooGenericMovementReceiver extends GenericMovementReceiver {
+public class FooGenericBaseChoreographyReceiver extends ChoreographyReceiver {
 
     FooRepository fooRepository;
 
 
     @Override
-    public void onMessage(ConsumerRecord<String, Movement> data) {
+    public void onMessage(ConsumerRecord<String, Choreography> data) {
         System.out.println("++++ FooMovement: " + data);
 
         var foo = new Foo();

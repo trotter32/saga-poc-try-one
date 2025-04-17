@@ -1,8 +1,7 @@
 package io.github.sagapoctryone.service.aspect;
 
-import io.github.sagapoctryone.model.RepoCallArg;
-import io.github.sagapoctryone.repository.AuxiliaryRepository;
-import io.github.sagapoctryone.repository.RepoCallArgRepository;
+import com.hazelcast.multimap.MultiMap;
+import io.github.sagapoctryone.repository.AuxiliaryMovementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -12,6 +11,9 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static lombok.AccessLevel.PRIVATE;
 
 @Aspect
@@ -20,12 +22,12 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class RepositoryAspect {
 
-    private final RepoCallArgRepository repoCallArgRepository;
+    MultiMap<String, Map<String, String>> auxiliaryMovementStepsMap;
 
 
     @Around("execution(* org.springframework.data.repository.CrudRepository+.*(..))")
     public Object AroundRepositoryCall(ProceedingJoinPoint joinPoint) throws Throwable {
-        Object result = null;
+        Object result;
 
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             throw new IllegalStateException("Transaction is not active");
@@ -33,22 +35,23 @@ public class RepositoryAspect {
 
         result = joinPoint.proceed();
 
-        if (joinPoint.getTarget().getClass().getInterfaces()[0].equals(AuxiliaryRepository.class)
-                || joinPoint.getTarget().getClass().getInterfaces()[0].equals(RepoCallArgRepository.class)
-    || MDC.get("movementFlag") != null) {
+        if (joinPoint.getTarget().getClass().getInterfaces()[0].equals(AuxiliaryMovementRepository.class)
+                || MDC.get("movementFlag") != null) {
             return result;
         }
 
-        var repoCallArgs = new RepoCallArg();
-        repoCallArgs.setAuxiliaryId(MDC.get("auxiliaryId"));
-
-        var argumentClass = joinPoint.getArgs()[0].getClass().toString();
-        repoCallArgs.setArgumentClass(argumentClass.split(" ")[1]);
-        var repositoryClass = joinPoint.getTarget().getClass().getInterfaces()[0].toString();
-        repoCallArgs.setRepositoryClass(repositoryClass.split(" ")[1]);
-
-        repoCallArgRepository.save(repoCallArgs);
+        saveAuxiliaryMovementSteps(joinPoint);
 
         return result;
+    }
+
+    private void saveAuxiliaryMovementSteps(ProceedingJoinPoint joinPoint) {
+        Map<String, String> movementSteps = new HashMap<>();
+        var argumentClass = joinPoint.getArgs()[0].getClass().toString();
+        movementSteps.put("argumentClass", argumentClass.split(" ")[1]);
+        var repositoryClass = joinPoint.getTarget().getClass().getInterfaces()[0].toString();
+        movementSteps.put("repositoryClass", repositoryClass.split(" ")[1]);
+
+        auxiliaryMovementStepsMap.put(MDC.get("auxiliaryId"), movementSteps);
     }
 }
