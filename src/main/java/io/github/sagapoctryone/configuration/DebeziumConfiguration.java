@@ -47,10 +47,8 @@ public class DebeziumConfiguration {
                                 "io.debezium.embedded.async.ConvertingAsyncEngineBuilderFactory")
                         .using(properties)
                         //todo handle warning
-                        .notifying(event -> System.out.println("~~~ " + event))
                         .notifying(event -> {
-                            log.info("put into queueueue happeend");
-                            //queue.offer(event.value());
+                            queue.offer(event.value());
                         })
                         .build();
 

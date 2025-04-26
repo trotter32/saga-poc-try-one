@@ -23,7 +23,6 @@ public class DebeziumMovementSinkProcessor extends AbstractProcessor {
         try {
             var entry = (Map.Entry<String, String>) item;
             multiMap.put(entry.getKey(), entry.getValue());
-            log.info("Movement processed: " + entry.getValue());
             return true;
         } catch (RuntimeException e) {
             return false;

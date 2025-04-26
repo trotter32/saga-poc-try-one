@@ -42,15 +42,12 @@ public class FooBar {
     @GetMapping("/foo")
     @Transactional
     public void foo() {
-        List<Foo> foos = new ArrayList<>();
-        for (int i = 0; i < 5 + i++;) {
-            var foo = new Foo();
-            //foo.setId("aqfwqfqw");
-            foo.setBar("hello there");
-            foos.add(foo);
+        try {
+            fooRepository.save(new Foo());
+        } catch (Throwable e){
+            System.out.printf("");
         }
 
-        fooRepository.saveAll(foos);
 
         //var set = hazelcastInstance.getSet("deduplication");
     }
@@ -62,13 +59,13 @@ public class FooBar {
         //foo.setId("aqfwqfqw");
         foo.setBar("hello there");
 
-        Flux.range(1, 2).flatMap(i ->
+        Flux.range(1, 5000).flatMap(i ->
                 Mono.fromCallable(() -> {
                     try (var client = HttpClient.newHttpClient()) {
                         var request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/foo")).build();
                         return client.send(request, HttpResponse.BodyHandlers.ofString());
                     }
-                }).subscribeOn(scheduler), 2).blockLast();
+                }).subscribeOn(scheduler), 5000).blockLast();
 
         //var set = hazelcastInstance.getSet("deduplication");
     }
@@ -83,6 +80,4 @@ public class FooBar {
                 .forEach(entry -> System.out.println(Base64.getDecoder().decode(((JsonNode) entry.getValue()).path("transaction").path("id").asText())));
         //var set = hazelcastInstance.getSet("deduplication");
     }
-
-
 }

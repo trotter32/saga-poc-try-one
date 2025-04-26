@@ -19,7 +19,6 @@ public class CdcMovementMapper implements FunctionEx<byte[], ObjectNode> {
     @Override
     public ObjectNode applyEx(byte[] bytes) throws Exception {
        var result = (ObjectNode) objectMapper.readTree(bytes);
-        System.out.println("~~~ " + result.toPrettyString());
         return result;
     }
 }

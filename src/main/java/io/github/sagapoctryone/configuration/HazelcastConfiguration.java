@@ -40,6 +40,7 @@ public class HazelcastConfiguration {
     Sink<Map.Entry<String, String>> debeziumMovementDestination;
     Sink<Map.Entry<String, String>> auxiliaryMovementDestination;
 
+
     @Bean
     public Job hazelcastJob(HazelcastInstance hazelcastInstance) {
         var pipeline = Pipeline.create();
@@ -69,7 +70,6 @@ public class HazelcastConfiguration {
                 .<byte[]>fillBufferFn((queue, buffer) -> {
                     byte[] item;
                     if ((item = queue.poll()) != null) {
-                        log.info("hazelcast ingested an item");
                         buffer.add(item);
                     }
                 }).build();
